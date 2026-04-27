@@ -1,0 +1,19 @@
+{
+  "name": "netrankup",
+  "version": "1.0.0",
+  "description": "Discord bot for handling moderator applications.",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "register": "node src/registerCommands.js",
+    "check": "node --check src/index.js && node --check src/registerCommands.js && node --check src/commandData.js"
+  },
+  "engines": {
+    "node": ">=18.17.0"
+  },
+  "dependencies": {
+    "discord.js": "^14.15.3",
+    "dotenv": "^16.4.5"
+  }
+}
