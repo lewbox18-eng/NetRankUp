@@ -142,7 +142,7 @@ function buildApplicationModal() {
     .setCustomId("experience")
     .setLabel("What moderation experience do you have?")
     .setStyle(TextInputStyle.Paragraph)
-    .setMinLength(5)
+    .setMinLength(1)
     .setMaxLength(400)
     .setRequired(true);
 
@@ -150,7 +150,7 @@ function buildApplicationModal() {
     .setCustomId("availability")
     .setLabel("How often can you help each week?")
     .setStyle(TextInputStyle.Paragraph)
-    .setMinLength(5)
+    .setMinLength(1)
     .setMaxLength(300)
     .setRequired(true);
 
@@ -158,7 +158,7 @@ function buildApplicationModal() {
     .setCustomId("reason")
     .setLabel("Why should we pick you?")
     .setStyle(TextInputStyle.Paragraph)
-    .setMinLength(10)
+    .setMinLength(1)
     .setMaxLength(600)
     .setRequired(true);
 
@@ -182,7 +182,7 @@ function buildRejectModal(userId, messageId) {
     .setCustomId("rejection_reason")
     .setLabel("Why is this application being rejected?")
     .setStyle(TextInputStyle.Paragraph)
-    .setMinLength(3)
+    .setMinLength(1)
     .setMaxLength(500)
     .setRequired(true);
 
@@ -346,15 +346,16 @@ client.on("interactionCreate", async (interaction) => {
 
     if (interaction.isModalSubmit()) {
       if (interaction.customId === APPLICATION_MODAL_ID) {
+        await interaction.deferReply({ ephemeral: true });
+
         const reviewChannel = await client.channels
           .fetch(process.env.APPLICATION_REVIEW_CHANNEL_ID)
           .catch(() => null);
 
         if (!reviewChannel || !reviewChannel.isTextBased()) {
-          await interaction.reply({
+          await interaction.editReply({
             content:
               "The review channel is missing or not text-based. Check the bot configuration.",
-            ephemeral: true
           });
           return;
         }
@@ -385,18 +386,16 @@ client.on("interactionCreate", async (interaction) => {
           });
         } catch (error) {
           console.error("Could not send application to the review channel:", error);
-          await interaction.reply({
+          await interaction.editReply({
             content:
               "I couldn't post your application to the review channel. Check the bot's channel permissions and review channel ID.",
-            ephemeral: true
           });
           return;
         }
 
-        await interaction.reply({
+        await interaction.editReply({
           content:
             "Your application has been sent to the staff team. NetRankUp will be in touch soon.",
-          ephemeral: true
         });
 
         return;
@@ -411,6 +410,8 @@ client.on("interactionCreate", async (interaction) => {
           return;
         }
 
+        await interaction.deferReply({ ephemeral: true });
+
         const [, userId, messageId] = interaction.customId.split(":");
         const rejectionReason = interaction.fields.getTextInputValue("rejection_reason");
         const reviewMessage = await interaction.channel.messages
@@ -418,9 +419,8 @@ client.on("interactionCreate", async (interaction) => {
           .catch(() => null);
 
         if (!reviewMessage) {
-          await interaction.reply({
+          await interaction.editReply({
             content: "I couldn't find the original application message.",
-            ephemeral: true
           });
           return;
         }
@@ -447,14 +447,22 @@ client.on("interactionCreate", async (interaction) => {
           );
         }
 
-        await interaction.reply({
+        await interaction.editReply({
           content: "The application was rejected and the applicant has been notified.",
-          ephemeral: true
         });
       }
     }
   } catch (error) {
     console.error("Interaction handler error:", error);
+
+    if (interaction.isRepliable() && interaction.deferred) {
+      await interaction
+        .editReply({
+          content: "Something went wrong while handling that action."
+        })
+        .catch(() => null);
+      return;
+    }
 
     if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
       await interaction.reply({
